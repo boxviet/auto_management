@@ -27,9 +27,9 @@ export function CostChart({ timeline }) {
       const date = new Date(today);
       date.setMonth(date.getMonth() + i);
       
-      // Monthly gas cost
-      const monthlyGas = timeline.monthlyGasCost || 0;
-      cumulativeGas += monthlyGas;
+      // Monthly fuel/energy cost
+      const monthlyFuel = timeline.monthlyFuelCost || 0;
+      cumulativeGas += monthlyFuel;
 
       // Check for maintenance events this month
       let monthlyMaintenance = 0;
@@ -114,7 +114,7 @@ export function CostChart({ timeline }) {
       <div className="chart-legend">
         <div className="legend-item">
           <span className="legend-color gas"></span>
-          <span>Fuel</span>
+          <span>{timeline.fuelType === 'electric' ? 'Energy' : 'Fuel'}</span>
         </div>
         <div className="legend-item">
           <span className="legend-color maintenance"></span>

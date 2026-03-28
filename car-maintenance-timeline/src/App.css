@@ -408,6 +408,13 @@ body {
 .vehicle-card-header h3 {
   color: #333;
   font-size: 1.1rem;
+  flex: 1;
+}
+
+.fuel-badge {
+  font-size: 1.25rem;
+  margin-right: 0.5rem;
+  cursor: help;
 }
 
 .delete-btn {
@@ -982,6 +989,81 @@ select:focus {
 .phone-missing {
   font-style: italic;
   font-size: 0.85rem;
+}
+
+/* EV Notice */
+.ev-notice {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.ev-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.ev-text strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.ev-text p {
+  margin: 0;
+  opacity: 0.95;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* EV Info Box */
+.ev-info-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.ev-icon-large {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.ev-info-box h4 {
+  color: #065f46;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.ev-info-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  text-align: left;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ev-info-box li {
+  padding: 0.5rem 0;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.ev-note {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #a7f3d0;
 }
 
 .shop-specialties {

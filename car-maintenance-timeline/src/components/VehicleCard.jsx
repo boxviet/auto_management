@@ -1,3 +1,15 @@
+const fuelTypeIcons = {
+  gas: '⛽',
+  diesel: '🛢️',
+  electric: '🔋'
+};
+
+const fuelTypeLabels = {
+  gas: 'Gasoline',
+  diesel: 'Diesel',
+  electric: 'Electric'
+};
+
 export function VehicleCard({ vehicle, onClick, onDelete }) {
   const handleDelete = (e) => {
     e.stopPropagation();
@@ -6,10 +18,15 @@ export function VehicleCard({ vehicle, onClick, onDelete }) {
     }
   };
 
+  const fuelType = vehicle.fuel_type || 'gas';
+
   return (
     <div className="vehicle-card" onClick={onClick}>
       <div className="vehicle-card-header">
         <h3>{vehicle.name}</h3>
+        <span className="fuel-badge" title={fuelTypeLabels[fuelType]}>
+          {fuelTypeIcons[fuelType]}
+        </span>
         <button className="delete-btn" onClick={handleDelete}>×</button>
       </div>
       <div className="vehicle-card-details">
@@ -20,6 +37,10 @@ export function VehicleCard({ vehicle, onClick, onDelete }) {
         <div className="detail-row">
           <span className="detail-label">Daily Drive:</span>
           <span className="detail-value">{vehicle.daily_commute * 2} mi</span>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Type:</span>
+          <span className="detail-value">{fuelTypeLabels[fuelType]}</span>
         </div>
         {vehicle.model && (
           <div className="detail-row">

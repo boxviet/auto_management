@@ -156,13 +156,25 @@ function VehicleDetail({ vehicle, onBack }) {
   const generateTimeline = () => {
     const currentMileage = vehicle.current_mileage;
     const dailyMileage = vehicle.daily_commute * 2;
-    const gasPrice = vehicle.gas_price || 3.50;
-    const mpg = vehicle.mpg || 25;
-
-    // Gas costs
-    const dailyGasCost = (dailyMileage / mpg) * gasPrice;
-    const yearlyGasCost = dailyGasCost * 365;
-    const monthlyGasCost = yearlyGasCost / 12;
+    const fuelPrice = vehicle.fuel_price || 3.50;
+    const fuelType = vehicle.fuel_type || 'gas';
+    
+    // Calculate fuel/energy costs based on vehicle type
+    let dailyFuelCost, yearlyFuelCost, monthlyFuelCost;
+    
+    if (fuelType === 'electric') {
+      // EV: kWh per mile * electricity price
+      const kwhPerMile = vehicle.kwh_per_mile || 0.3;
+      dailyFuelCost = dailyMileage * kwhPerMile * fuelPrice;
+      yearlyFuelCost = dailyFuelCost * 365;
+      monthlyFuelCost = yearlyFuelCost / 12;
+    } else {
+      // Gas/Diesel: MPG * fuel price
+      const mpg = vehicle.mpg || (fuelType === 'diesel' ? 30 : 25);
+      dailyFuelCost = (dailyMileage / mpg) * fuelPrice;
+      yearlyFuelCost = dailyFuelCost * 365;
+      monthlyFuelCost = yearlyFuelCost / 12;
+    }
 
     // Engine - Oil Changes
     const oilChangeInterval = vehicle.oil_change_interval || 5000;
@@ -250,14 +262,17 @@ function VehicleDetail({ vehicle, onBack }) {
 
     setTimeline({
       vehicle: vehicle.name,
+      fuelType,
       currentMileage,
       dailyMileage,
-      gasPrice,
-      mpg,
-      dailyGasCost,
-      monthlyGasCost,
-      yearlyGasCost,
-      oilChanges,
+      fuelPrice,
+      fuelUnit: vehicle.fuel_unit || 'gal',
+      mpg: vehicle.mpg || (fuelType === 'diesel' ? 30 : 25),
+      kwhPerMile: vehicle.kwh_per_mile || 0.3,
+      dailyFuelCost,
+      monthlyFuelCost,
+      yearlyFuelCost,
+      oilChanges: fuelType === 'electric' ? [] : oilChanges,
       tireRotations,
       pressureChecks,
       hasTireData: !!vehicle.tire_rotation_interval
@@ -282,80 +297,125 @@ function VehicleDetail({ vehicle, onBack }) {
             <span className="divider">•</span>
             <span>{timeline.dailyMileage} mi/day</span>
             <span className="divider">•</span>
-            <span>${timeline.gasPrice.toFixed(2)}/gal</span>
+            <span>
+              {timeline.fuelType === 'electric' 
+                ? `$${timeline.fuelPrice.toFixed(2)}/kWh`
+                : `$${timeline.fuelPrice.toFixed(2)}/${timeline.fuelUnit}`
+              }
+            </span>
+            <span className="divider">•</span>
+            <span className="fuel-type-badge">
+              {timeline.fuelType === 'electric' ? '🔋 EV' : timeline.fuelType === 'diesel' ? '🛢️ Diesel' : '⛽ Gas'}
+            </span>
           </div>
         </div>
 
         {/* Cost Chart */}
         <CostChart timeline={timeline} />
 
-        {/* Engine Tab */}
-        <div className="maintenance-tabs">
-          <button
-            className={`tab-header ${expandedTabs.engine ? 'expanded' : ''}`}
-            onClick={() => toggleTab('engine')}
-          >
-            <span className="tab-icon">🔧</span>
-            <span className="tab-title">Engine Maintenance</span>
-            <span className="tab-count">{timeline.oilChanges.length} oil changes</span>
-            <span className="tab-arrow">{expandedTabs.engine ? '▼' : '▶'}</span>
-          </button>
+        {/* Engine Tab - Only show for gas/diesel vehicles */}
+        {timeline.fuelType !== 'electric' && (
+          <div className="maintenance-tabs">
+            <button
+              className={`tab-header ${expandedTabs.engine ? 'expanded' : ''}`}
+              onClick={() => toggleTab('engine')}
+            >
+              <span className="tab-icon">🔧</span>
+              <span className="tab-title">Engine Maintenance</span>
+              <span className="tab-count">{timeline.oilChanges.length} oil changes</span>
+              <span className="tab-arrow">{expandedTabs.engine ? '▼' : '▶'}</span>
+            </button>
 
-          {expandedTabs.engine && (
-            <div className="tab-content">
-              <div className="visual-timeline">
-                <div className="timeline-line">
-                  <div className="timeline-track">
-                    {timeline.oilChanges.map((change, index) => (
-                      <div
-                        key={change.number}
-                        className="timeline-point"
-                        style={{ left: `${(index / (timeline.oilChanges.length - 1)) * 100}%` }}
-                      >
-                        <div className="point-marker"></div>
-                        <div className="point-label">
-                          <div className="point-date">{change.date.split(',')[1]?.trim() || change.date}</div>
-                          <div className="point-mileage">{change.mileage.toLocaleString()} mi</div>
-                          <div className="point-days">{change.daysUntil} days</div>
+            {expandedTabs.engine && (
+              <div className="tab-content">
+                <div className="visual-timeline">
+                  <div className="timeline-line">
+                    <div className="timeline-track">
+                      {timeline.oilChanges.map((change, index) => (
+                        <div
+                          key={change.number}
+                          className="timeline-point"
+                          style={{ left: `${(index / (timeline.oilChanges.length - 1)) * 100}%` }}
+                        >
+                          <div className="point-marker"></div>
+                          <div className="point-label">
+                            <div className="point-date">{change.date.split(',')[1]?.trim() || change.date}</div>
+                            <div className="point-mileage">{change.mileage.toLocaleString()} mi</div>
+                            <div className="point-days">{change.daysUntil} days</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="timeline-ticks">
-                    {timeline.oilChanges.map((change, index) => (
-                      <div
-                        key={`tick-${change.number}`}
-                        className="tick-mark"
-                        style={{ left: `${(index / (timeline.oilChanges.length - 1)) * 100}%` }}
-                      >
-                        <div className="tick-line"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {timeline.oilChanges.map((change) => (
-                <div key={change.number} className="maintenance-item">
-                  <div className="item-marker">{change.number}</div>
-                  <div className="item-content">
-                    <div className="item-title">Oil Change #{change.number}</div>
-                    <div className="item-date">{change.date}</div>
-                    <div className="item-details">
-                      <span>{change.mileage.toLocaleString()} miles</span>
-                      <span className="item-days">
-                        {change.daysUntil === 0
-                          ? 'Today!'
-                          : change.daysUntil === 1
-                            ? 'Tomorrow'
-                            : `${change.daysUntil} days away`}
-                      </span>
+                      ))}
+                    </div>
+                    <div className="timeline-ticks">
+                      {timeline.oilChanges.map((change, index) => (
+                        <div
+                          key={`tick-${change.number}`}
+                          className="tick-mark"
+                          style={{ left: `${(index / (timeline.oilChanges.length - 1)) * 100}%` }}
+                        >
+                          <div className="tick-line"></div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                {timeline.oilChanges.map((change) => (
+                  <div key={change.number} className="maintenance-item">
+                    <div className="item-marker">{change.number}</div>
+                    <div className="item-content">
+                      <div className="item-title">Oil Change #{change.number}</div>
+                      <div className="item-date">{change.date}</div>
+                      <div className="item-details">
+                        <span>{change.mileage.toLocaleString()} miles</span>
+                        <span className="item-days">
+                          {change.daysUntil === 0
+                            ? 'Today!'
+                            : change.daysUntil === 1
+                              ? 'Tomorrow'
+                              : `${change.daysUntil} days away`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* EV Battery Tab - Only show for electric vehicles */}
+        {timeline.fuelType === 'electric' && (
+          <div className="maintenance-tabs">
+            <button
+              className={`tab-header ${expandedTabs.engine ? 'expanded' : ''}`}
+              onClick={() => toggleTab('engine')}
+            >
+              <span className="tab-icon">🔋</span>
+              <span className="tab-title">EV Maintenance</span>
+              <span className="tab-count">No oil changes needed!</span>
+              <span className="tab-arrow">{expandedTabs.engine ? '▼' : '▶'}</span>
+            </button>
+
+            {expandedTabs.engine && (
+              <div className="tab-content">
+                <div className="ev-info-box">
+                  <div className="ev-icon-large">🔋⚡</div>
+                  <h4>Electric Vehicle Benefits</h4>
+                  <ul>
+                    <li>✅ No oil changes required</li>
+                    <li>✅ Reduced brake wear (regenerative braking)</li>
+                    <li>✅ Fewer moving parts = less maintenance</li>
+                    <li>✅ Lower energy costs per mile</li>
+                  </ul>
+                  <p className="ev-note">
+                    We still track tire maintenance and energy costs for your EV.
+                    Battery health checks recommended annually.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tires Tab - Only show if tire data exists */}
         {timeline.hasTireData && (
@@ -418,15 +478,19 @@ function VehicleDetail({ vehicle, onBack }) {
           </div>
         )}
 
-        {/* Gas Tab */}
+        {/* Fuel/Energy Tab */}
         <div className="maintenance-tabs">
           <button
             className={`tab-header ${expandedTabs.gas ? 'expanded' : ''}`}
             onClick={() => toggleTab('gas')}
           >
-            <span className="tab-icon">⛽</span>
-            <span className="tab-title">Fuel Costs</span>
-            <span className="tab-count">${timeline.yearlyGasCost.toFixed(0)}/year</span>
+            <span className="tab-icon">
+              {timeline.fuelType === 'electric' ? '🔌' : timeline.fuelType === 'diesel' ? '🛢️' : '⛽'}
+            </span>
+            <span className="tab-title">
+              {timeline.fuelType === 'electric' ? 'Energy Costs' : timeline.fuelType === 'diesel' ? 'Diesel Costs' : 'Fuel Costs'}
+            </span>
+            <span className="tab-count">${timeline.yearlyFuelCost.toFixed(0)}/year</span>
             <span className="tab-arrow">{expandedTabs.gas ? '▼' : '▶'}</span>
           </button>
 
@@ -436,19 +500,23 @@ function VehicleDetail({ vehicle, onBack }) {
                 <div className="cost-grid">
                   <div className="cost-box">
                     <div className="cost-label">Daily</div>
-                    <div className="cost-value">${timeline.dailyGasCost.toFixed(2)}</div>
+                    <div className="cost-value">${timeline.dailyFuelCost.toFixed(2)}</div>
                   </div>
                   <div className="cost-box">
                     <div className="cost-label">Monthly</div>
-                    <div className="cost-value">${timeline.monthlyGasCost.toFixed(2)}</div>
+                    <div className="cost-value">${timeline.monthlyFuelCost.toFixed(2)}</div>
                   </div>
                   <div className="cost-box highlight">
                     <div className="cost-label">Yearly</div>
-                    <div className="cost-value">${timeline.yearlyGasCost.toFixed(2)}</div>
+                    <div className="cost-value">${timeline.yearlyFuelCost.toFixed(2)}</div>
                   </div>
                 </div>
                 <div className="cost-note">
-                  Based on {timeline.dailyMileage} miles/day @ {timeline.mpg} MPG @ ${timeline.gasPrice.toFixed(2)}/gal
+                  {timeline.fuelType === 'electric' ? (
+                    <>Based on {timeline.dailyMileage} miles/day @ {timeline.kwhPerMile} kWh/mi @ ${timeline.fuelPrice.toFixed(2)}/kWh</>
+                  ) : (
+                    <>Based on {timeline.dailyMileage} miles/day @ {timeline.mpg} MPG @ ${timeline.fuelPrice.toFixed(2)}/{timeline.fuelUnit}</>
+                  )}
                 </div>
               </div>
             </div>
